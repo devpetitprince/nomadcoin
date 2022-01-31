@@ -5,7 +5,7 @@ import (
 	"github.com/devpetitprince/nomadcoin/db"
 )
 
-func main(){
+func main () {
 	defer db.Close()
 	cli.Start()
 }
