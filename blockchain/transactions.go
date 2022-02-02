@@ -25,12 +25,14 @@ type Tx struct {
 }
 
 func (t *Tx) getId() {
-	t.Id = utils.Hash(t)
+	t.ID = utils.Hash(t)
 }
 
 type TxIn struct {
+	TxID  string	`json:"txId"`
+	Index int		`json:"index"`
 	Owner string	`json:"owner"`
-	Amount int		`json:"amount"`
+	
 }
 
 type TxOut struct {
@@ -38,9 +40,15 @@ type TxOut struct {
 	Amount int		`json:"amount"`
 }
 
+type UTxOut struct {
+	TxID	string	
+	Index	int		
+	Amount	int		
+}
+
 func makeCoinbaseTx(address string) *Tx{
 	txIns := []*TxIn{
-		{"COINBASE", minerReward},
+		{"", -1, "COINBASE"},
 	}
 	txOuts := []*TxOut{
 		{address, minerReward},
@@ -55,38 +63,38 @@ func makeCoinbaseTx(address string) *Tx{
 	return &tx
 }
 
-func makeTx(from, to string, amount int) (*Tx, error) {
+func makeTx(from, to string, amount int) (*Tx, error){
 	if Blockchain().BalanceByAddress(from) < amount {
 		return nil, errors.New("not enough money")
 	}
-	var txIns []*TxIn
 	var txOuts []*TxOut
+	var txIns []*TxIn
 	total := 0
-	oldTxOuts := Blockchain().TxOutsByAddress(from)
-	for _, txOut := range oldTxOuts {
+	uTxOuts := Blockchain().UTxOutsByAddress(from)
+	for _, uTxOut := range uTxOuts{
 		if total > amount {
 			break
 		}
-		txIn := &TxIn{txOut.Owner, txOut.Amount}
+		txIn := &TxIn{uTxOut.TxID, uTxOut.Index, from}
 		txIns = append(txIns, txIn)
-		total += txOut.Amount
+		total += uTxOut.Amount
 	}
-	change := total - amount
-	if change != 0 {
+	if change := total - amount; change != 0 {
 		changeTxOut := &TxOut{from, change}
 		txOuts = append(txOuts, changeTxOut)
 	}
 	txOut := &TxOut{to, amount}
 	txOuts = append(txOuts, txOut)
 	tx := &Tx{
-		Id:        "",
+		ID:"",
 		Timestamp: int(time.Now().Unix()),
-		TxIns:     txIns,
-		TxOuts:    txOuts,
+		TxIns: txIns,
+		TxOuts: txOuts,
 	}
 	tx.getId()
 	return tx, nil
 }
+	
 
 func (m *mempool) AddTx(to string, amount int) error {
 	tx, err := makeTx("nico", to, amount)
@@ -95,4 +103,12 @@ func (m *mempool) AddTx(to string, amount int) error {
 	}
 	m.Txs = append(m.Txs, tx)
 	return nil
+}
+
+func (m *mempool) TxToConfirm() []*Tx {
+	coinbase := makeCoinbaseTx("nico")
+	txs := m.Txs
+	txs = append(txs, coinbase)
+	m.Txs = nil
+	return txs
 }

@@ -81,7 +81,7 @@ func documentation(rw http.ResponseWriter, r *http.Request){
 		},
 	}
 	
-	json.NewEncoder(rw).Encode(data)
+	utils.HandleErr(json.NewEncoder(rw).Encode(data))
 }
 
 func blocks(rw http.ResponseWriter, r *http.Request) {
