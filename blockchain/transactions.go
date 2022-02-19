@@ -18,7 +18,7 @@ type mempool struct {
 var Mempool *mempool = &mempool{}
 
 type Tx struct {
-	Id string	`json:"id"`
+	ID string	`json:"id"`
 	Timestamp int	`json:"timestamp"`
 	TxIns []*TxIn	`json:"txIns"`
 	TxOuts []*TxOut	`json:"txOuts"`
@@ -54,7 +54,7 @@ func makeCoinbaseTx(address string) *Tx{
 		{address, minerReward},
 	}
 	tx := Tx{
-		Id: "",
+		ID: "",
 		Timestamp: int(time.Now().Unix()),
 		TxIns: txIns,
 		TxOuts: txOuts,
@@ -71,7 +71,7 @@ func makeTx(from, to string, amount int) (*Tx, error){
 	var txIns []*TxIn
 	total := 0
 	uTxOuts := Blockchain().UTxOutsByAddress(from)
-	for _, uTxOut := range uTxOuts{
+	for _, uTxOut := range uTxOuts {
 		if total > amount {
 			break
 		}
@@ -79,21 +79,22 @@ func makeTx(from, to string, amount int) (*Tx, error){
 		txIns = append(txIns, txIn)
 		total += uTxOut.Amount
 	}
-	if change := total - amount; change != 0 {
-		changeTxOut := &TxOut{from, change}
-		txOuts = append(txOuts, changeTxOut)
+		if change := total - amount; change != 0 {
+			changeTxOut := &TxOut{from, change}
+			txOuts =append(txOuts, changeTxOut)
+		}
+		txOut := &TxOut{to, amount}
+		txOuts = append(txOuts, txOut)
+		tx := &Tx{
+			ID: "",
+			Timestamp: int(time.Now().Unix()),
+			TxIns: txIns,
+			TxOuts: txOuts,
+		}
+		tx.getId()
+		return tx, nil
 	}
-	txOut := &TxOut{to, amount}
-	txOuts = append(txOuts, txOut)
-	tx := &Tx{
-		ID:"",
-		Timestamp: int(time.Now().Unix()),
-		TxIns: txIns,
-		TxOuts: txOuts,
-	}
-	tx.getId()
-	return tx, nil
-}
+
 	
 
 func (m *mempool) AddTx(to string, amount int) error {
